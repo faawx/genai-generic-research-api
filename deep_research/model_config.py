@@ -9,10 +9,6 @@ logger = logging.getLogger(__name__)
 # Load environment variables from a .env file
 load_dotenv()
 
-# Ensure GOOGLE_API_KEY is set
-if "GOOGLE_API_KEY" not in os.environ:
-    os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
-
 # --- Model Configuration ---
 # Default model parameters
 GEMINI_MODEL = "gemini-2.5-flash"
