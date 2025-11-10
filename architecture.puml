@@ -1,0 +1,28 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' C2 Model for AGI Deep Research Backend
+
+System_Boundary(c1, "AGI Deep Research Backend") {
+
+    Container(api, "FastAPI Application", "Python, FastAPI", "Exposes RESTful API for research orchestration.")
+    Container(langgraph, "Langgraph Orchestrator", "Python, Langgraph", "Manages the flow and interaction of research agents.")
+    Container(agents, "Research Agents", "Python", "Collection of specialized agents (e.g., Planner, Analyser, Reflector, Reporter, Search).")
+    Container(tools, "External Tools", "Python", "Integrates with external services like Google Search.")
+    Container(database, "State", "Python", "Stores research data, agent states, and configurations.")
+
+    Rel(api, langgraph, "Uses", "HTTP/Internal Calls")
+    Rel(langgraph, agents, "Orchestrates", "Internal Calls")
+    Rel(agents, tools, "Utilizes", "Internal Calls/API Calls")
+    Rel(langgraph, database, "Reads/Writes", "SQL/ORM")
+    Rel(agents, database, "Reads/Writes", "SQL/ORM")
+
+}
+
+System_Ext(user, "User")
+System_Ext(external_llm, "External LLM Provider")
+
+Rel(user, api, "Interacts with", "HTTPS")
+Rel(agents, external_llm, "Queries", "API Calls")
+
+@enduml
