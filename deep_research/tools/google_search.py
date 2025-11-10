@@ -18,11 +18,6 @@ load_dotenv()
 
 # This code tells LangChain to use the keys you just pasted
 # Ensure your .env file has GOOGLE_API_KEY="your_key_here"
-if "GOOGLE_SEARCH_API_KEY" not in os.environ:
-    os.environ["GOOGLE_SEARCH_API_KEY"] = os.getenv("GOOGLE_SEARCH_API_KEY")
-
-if "GOOGLE_CSE_ID" not in os.environ:
-    os.environ["GOOGLE_CSE_ID"] = os.getenv("GOOGLE_CSE_ID")
 # --- END OF SETUP ---
 
 
