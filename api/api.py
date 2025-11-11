@@ -32,7 +32,7 @@ def read_root():
 @api.post("/do-research", tags=["Deep Research"], response_model=dict)
 def do_research(request: ResearchRequest):
     """
-    Takes a travel topic and returns a complete, generated itinerary.
+    Takes a topic and returns a complete, research article.
     """
     logger.info(f"Starting deep research for topic: {request.topic}")
     
