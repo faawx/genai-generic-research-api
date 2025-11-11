@@ -1,4 +1,4 @@
-name: Python CI
+name: Python Secure CI
 
 on:
   push:
@@ -7,8 +7,58 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+
+  # ===================================================================
+  # JOB 1: STATIC CHECKS (Run in Parallel)
+  # These jobs run first. If any of them fail, the pipeline stops.
+  # ===================================================================
+
+  gitleaks-scan:
+    name: 🛡️ Secret Scan
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # Needs full history to scan
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_FAIL: "true" # Fail the build if secrets are found
+
+  sast-scan:
+    name: 🐍 SAST (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install and run bandit
+        run: |
+          pip install bandit
+          bandit -r .
+
+  sca-scan:
+    name: 📦 SCA (Trivy FS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'             # Scan the filesystem
+          scan-ref: '.'               # Scan the whole repo
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'HIGH,CRITICAL'   # Fail on High or Critical
+          exit-code: '1'              # Makes the job fail if vulns are found
+
+  # ===================================================================
+  # JOB 2: Build and Test
+  # ===================================================================
+
+  build:
+    name: 🐳 Build and Test
+    needs: [ gitleaks-scan, sast-scan, sca-scan ] # Wait for checks to pass
+    runs-on: ubuntu-latest    
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.14
