@@ -59,12 +59,16 @@ jobs:
       - name: List files for debugging
         run: |
           ls -laR
+      
+      - name: Include transitive dependencies
+        run: |
+          pip freeze > requirements.txt
           
       - name: Run Trivy repository scan
         run: |
           trivy repo --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
 
-          
+
   # ===================================================================
   # JOB 2: Build and Test
   # ===================================================================
