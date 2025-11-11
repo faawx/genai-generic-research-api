@@ -34,11 +34,21 @@ jobs:
         with:
           # Use a stable, fully-supported Python version for bandit
           python-version: '3.11'
+          
       - name: Install and run bandit
         # -ll flag sets the reporting level to MEDIUM and above (break)
+        # -f json outputs to JSON format
+        # -o bandit-report.json saves the output to a file
         run: |
           pip install bandit
-          bandit -r . -ll
+          bandit -r . -ll -f json -o bandit-report.json
+
+      - name: Upload Bandit report
+        if: always() 
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
           
 
   sca-scan:
@@ -54,7 +64,7 @@ jobs:
           python-version: '3.11' 
           
       - name: Set up Trivy
-        uses: aquasecurity/setup-trivy@v0.2.0 # This just installs the trivy binary
+        uses: aquasecurity/setup-trivy@v0.2.0 
         
       - name: List files for debugging
         run: |
@@ -68,9 +78,15 @@ jobs:
           
       - name: Run Trivy repository scan
         run: |
-          trivy repo --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
+          trivy repo --format json --output trivy-report.json --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
 
-
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json 
+          
   # ===================================================================
   # JOB 2: Build and Test
   # ===================================================================
