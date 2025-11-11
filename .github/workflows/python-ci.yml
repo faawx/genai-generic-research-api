@@ -62,7 +62,7 @@ jobs:
       
       - name: Include transitive dependencies
         run: |
-          pip freeze > requirements.txt
+          pip freeze > requirements.txt ; cat requirements.txt
           
       - name: Run Trivy repository scan
         run: |
