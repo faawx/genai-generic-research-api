@@ -1,6 +1,8 @@
 import json
 from deep_research.model_config import model # Import the centralized model
 from deep_research.state import GraphState # Import GraphState from the new State.py file
+from deep_research.safety import SAFETY_CONSTITUTION
+
 import logging
 
     
@@ -14,6 +16,9 @@ logger = logging.getLogger(__name__)
 # ======================================================================
 
 REPORTER_SYSTEM_PROMPT = """
+
+{SAFETY_CONSTITUTION}
+
 You are the "Master Research Synthesizer". Your job is to compile a comprehensive, 
 professional report on ANY given topic based *only* on the provided research data.
 
@@ -25,6 +30,9 @@ professional report on ANY given topic based *only* on the provided research dat
 3.  **Preserve Citations:** You MUST keep the `[source_url]` citations next to their corresponding facts.
 4.  **Professional Tone:** Maintain an objective, analytical, and highly professional tone suitable for a briefing document.
 5.  **Formatting:** Use Markdown (h1, h2, bold, lists) for readability.
+
+* **Disclaimer:** Always include a standard footer disclaimer about AI generation.
+* **Refusal:** If the provided research data is related to harmful activities, refuse to write the report and output a safety warning instead.
 
 **Output:** ONLY the final Markdown report.
 """

@@ -8,6 +8,7 @@ This project serves as the backend for a GenAI Deep Research application, utiliz
 -   **Google Search Integration**: Leverages Google Search for information retrieval.
 -   **FastAPI**: Provides a robust and scalable API for interaction.
 -   **Langchain/Langgraph**: Orchestrates complex research workflows.
+-   **Secure and Ethical by Design**: Implements strict security protocols and an ethical charter to ensure safe and responsible operation.
 
 ## Architecture
 
@@ -63,17 +64,26 @@ uvicorn main:app --reload
 
 The API will be available at `http://127.0.0.1:8000`. You can access the API documentation at `http://127.0.0.1:8000/docs`.
 
-## Continuous Integration and Security
+## Security
 
-This project uses GitHub Actions for Continuous Integration (CI) to ensure code quality and security. The CI pipeline, defined in `.github/workflows/python-ci.yml`, automatically runs a series of checks on every push and pull request to the `main` branch.
+This project implements a multi-layered security approach, addressing both application-level and development lifecycle risks. The full security policy can be found in [SECURITY.md](./SECURITY.md).
 
-The pipeline includes the following security scans:
+Key security measures include:
+- **Prompt Injection Defense:** Input validation and hardened prompts to prevent malicious instructions.
+- **Sensitive Information Redaction:** Sanitization of outputs to prevent PII leakage.
+- **Denial of Service Prevention:** Limits on input length and research loops.
+- **Restricted Agency:** The agent's only tool is Google Search, with no access to the file system or network.
+- **Secure Development:** The CI/CD pipeline includes automated secret scanning, static analysis (SAST), and dependency scanning (SCA).
 
--   **Secret Scanning (Gitleaks)**: Uses `Gitleaks` to scan the repository's history for any hardcoded secrets or sensitive information. The build will fail if any secrets are detected.
--   **Static Application Security Testing (SAST)**: Uses `Bandit` to analyze the Python code for common security vulnerabilities.
--   **Software Composition Analysis (SCA)**: Uses `Trivy` to scan the project's dependencies for known vulnerabilities. It checks for high and critical severity issues and will fail the build if any are found.
+## Ethical Charter
 
-These automated checks help maintain a secure and reliable codebase.
+The agent is designed with a strong ethical framework, detailed in the [ETHICS.md](./ETHICS.md) file. This charter is technically enforced through a `SAFETY_CONSTITUTION` implemented in the agent's logic.
+
+Core principles include:
+- **Harmlessness:** Refusing to research dangerous or illegal topics.
+- **Privacy:** Redacting Personally Identifiable Information (PII).
+- **Objectivity:** Grounding answers in verifiable search results.
+- **Robustness:** Limiting agent capabilities to prevent misuse.
 
 ## Project Structure
 

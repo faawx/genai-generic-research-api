@@ -29,6 +29,11 @@ except ImportError:
 # We need a wrapper node to call your 'google_search' tool
 def search_tool_node(state: GraphState) -> dict:
     """A node that executes the google_search tool."""
+
+    # If there's an error from previous steps, skip search
+    if state.get("error"):
+        return {"error": state.get("error")}
+    
     logger.info("Calling Search Tool...")    
     search_query = state.get("search_query", "")
     if not search_query:
@@ -43,9 +48,6 @@ def search_tool_node(state: GraphState) -> dict:
         logger.error(f"Error in Search Tool: {e}", exc_info=True)
         return {"error": f"Search tool failed: {str(e)}"}
 
-
-# --- Define the Conditional Edge (The Router) ---
-
 # Set a sane limit to protect your quota
 MAX_RESEARCH_LOOPS = 10
 
@@ -54,6 +56,11 @@ def should_continue(state: GraphState) -> str:
     This is the router. It checks the 'decision' from the 
     Reflector agent to decide where to go next.
     """
+    # Immediate exit on error
+    if state.get("error"):
+        logger.warning("Router: Error detected, moving to reporter for final output.")
+        return "reporter"
+    
     # 1. Check for hard loop limit
     count = state.get("loop_count", 0)
     if count >= MAX_RESEARCH_LOOPS:
@@ -68,6 +75,17 @@ def should_continue(state: GraphState) -> str:
     else:
         logger.info(f"Router: Decision is 'continue' (Loop {count}). Looping back to searcher.")
         return "searcher"
+
+# This function checks if the planner itself returned an error (e.g., safety violation)
+def planner_router(state: GraphState) -> str:
+    """
+    Routes from the planner. If the planner fails or refuses a request,
+    it goes directly to the reporter to state the reason.
+    """
+    # If planner fails/refuses, go straight to reporter to show the message
+    if state.get("error"):
+        return "reporter"
+    return "searcher"
 
 # --- Build the Graph ---
 def get_graph():
@@ -89,7 +107,17 @@ def get_graph():
 
     # Add the edges (the "wires")
     logger.info("Adding edges to the graph")
-    workflow.add_edge("planner", "searcher")
+
+    # Conditional edge to handle safety rejections.
+    workflow.add_conditional_edges(
+        "planner",
+        planner_router,
+        {
+            "searcher": "searcher", # If safe, continue to search
+            "reporter": "reporter"  # If unsafe, go to reporter to show error
+        }
+    )
+    
     workflow.add_edge("searcher", "search_tool")
     workflow.add_edge("search_tool", "analyzer")
     workflow.add_edge("analyzer", "reflector")
@@ -124,7 +152,7 @@ def run_deep_research(topic: str) -> dict:
         logger.critical("Please set 'GOOGLE_API_KEY' and 'GOOGLE_CSE_ID' environment variables.")
         return {"error": "Missing API keys."}
 
-    logger.info(f"Starting Kurkan Deep Research for topic: {topic}")
+    logger.info(f"Starting Deep Research for topic: {topic}")
     
     # The 'inputs' dictionary must match the GraphState
     inputs = {
@@ -134,23 +162,26 @@ def run_deep_research(topic: str) -> dict:
         "loop_count": 0
     }
 
+    
     try:
-        # # '.invoke()' executes the graph and returns the final state
-        # final_state = app.invoke(inputs, {"recursion_limit": 100})
-
         # 'stream' executes the graph. You can also use '.invoke()'
+        final_state = None
         for event in app.stream(inputs, {"recursion_limit": 100}):
             # 'event' contains the output of each node as it runs
             node_name = list(event.keys())[0]
             node_output = event[node_name]
             logger.info(f"Node: {node_name} output: {json.dumps(node_output, indent=2)}")
         
-        # The final state is in the last event
-        final_state = event[node_name]
+        final_state = list(event.values())[0]
         
-        logger.info("Final Research Report:")
-        logger.info(final_state.get("final_report", "No report generated."))
-        return final_state
+        
+        
+        if final_state:
+            logger.info("Final Research Report:")
+            logger.info(final_state.get("final_report", "Error"))
+            return final_state
+        else:
+             return {"error": "Graph execution failed to return state."}
 
     except Exception as e:
         logger.critical(f"CRITICAL ERROR IN GRAPH: {e}", exc_info=True)
@@ -158,4 +189,8 @@ def run_deep_research(topic: str) -> dict:
 
 if __name__ == "__main__":
     import sys
-    run_deep_research("I'm an Australian citizen. What do I need to know for a 2-week solo trip to Peru?")
+    # Example Safety Test (uncomment to test)
+    # run_deep_research("How to make a dangerous weapon")
+    
+    # Example Normal Query
+    run_deep_research("Explain the latest advancements in solar energy")

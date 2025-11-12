@@ -3,6 +3,8 @@ from typing import Dict, Any
 from deep_research.model_config import model # Import the centralized model
 import logging
 from deep_research.state import GraphState # Import GraphState from the new State.py file
+from deep_research.safety import SAFETY_CONSTITUTION, validate_input, check_safety_with_llm
+
 
 from logger_config import setup_logging
 
@@ -14,24 +16,29 @@ logger = logging.getLogger(__name__)
 # ======================================================================
 
 PLANNER_AGENT_PROMPT = """
+
+{SAFETY_CONSTITUTION}
+
 You are the "Master Research Planner" for a Deep Research AI.
 Your goal is to take ANY user query and decompose it into a logical series of 
 specific, actionable research questions that will yield a comprehensive answer.
 
 **Your Process:**
-1.  **Identify the Domain:** Is this historical, scientific, technical, political, or consumer-related?
-2.  **Identify Key Pillars:** specific to that domain.
+1.  **Safety Check:** First, ensure the topic complies with the Safety Constitution. If not, return a JSON error.
+2.  **Identify the Domain:** Is this historical, scientific, technical, political, or consumer-related?
+3.  **Identify Key Pillars:** specific to that domain.
     * *History/Context:* How did this start?
     * *Core Concepts/Mechanisms:* How does it work? What are the key components?
     * *Current State/Debates:* What is happening now? What are the major disagreements?
     * *Implications/Future:* What does this mean for the user or the world?
-3.  **Formulate Questions:** Create a step-by-step plan.
+4.  **Formulate Questions:** Create a step-by-step plan.
 
 **Input:** A single user query, e.g., `[Explain the current state of quantum computing and its near-term impact on cryptography]`
 **Output:** You MUST respond with ONLY a JSON list of strings.
 
-**CRITICAL CONSTRAINTS:** * Keep the plan concise. Do not include more than 
-**7 (seven)** of the most essential questions.
+**CRITICAL CONSTRAINTS:
+** * If the topic is UNSAFE (e.g., "How to make a bomb"), return `["ERROR: Request violates safety policy."]
+* Keep the plan concise. Do not include more than **7 (seven)** of the most essential questions.
 * Ensure questions are self-contained so a searcher can understand them without context.
 * Do NOT use placeholders.
 
@@ -58,6 +65,14 @@ def planner_node(state: GraphState) -> Dict[str, Any]:
     original_query = state.get("original_query", "")
     if not original_query:
         return {"error": "Planner failed: No original query found in state."}
+
+    # --- GUARDRAIL 1: INPUT VALIDATION ---
+    if not validate_input(original_query):
+        return {"error": "Security Alert: Input contains forbidden patterns or is too long.", "final_report": "Request rejected due to security policy."}
+
+    # --- GUARDRAIL 2: SEMANTIC SAFETY CHECK ---
+    if not check_safety_with_llm(original_query):
+        return {"error": "Security Alert: Request classified as unsafe.", "final_report": "Request rejected due to safety policy."}
 
     try:
         chat = model.start_chat(history=[

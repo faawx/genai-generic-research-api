@@ -2,6 +2,7 @@ import json
 from deep_research.model_config import model # Import the centralized model
 import logging
 from deep_research.state import GraphState # Import GraphState from the new State.py file
+from deep_research.safety import SAFETY_CONSTITUTION
     
 from logger_config import setup_logging
 
@@ -13,6 +14,9 @@ logger = logging.getLogger(__name__)
 # ======================================================================
 
 REFLECTOR_SYSTEM_PROMPT = """
+
+{SAFETY_CONSTITUTION}
+
 You are the "Research Coordinator". Your job is to ensure completeness and depth.
 
 **Task:**
@@ -27,6 +31,8 @@ to fully address the user's original intent?
 3.  **NO TRIVIA.** Do not add questions about "best food" or "cool 
     sights" unless it was the point of the original query.
 4.  **Output Format:** You MUST respond with ONLY a JSON list of strings.
+
+**Safety:** Do NOT suggest follow-up questions that would violate safety policies or dive deeper into harmful topics.
 
 **Output:** ONLY a JSON list of new question strings (or an empty list `[]`).
 """
