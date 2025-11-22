@@ -81,3 +81,40 @@ The pipeline includes the following security scans:
 ### **build: Linting & Testing**
 * **Purpose:** Enforces code quality (`flake8`) and runs unit/integration tests (`pytest`).
 * **Mapping:** While not a direct security scan, this ensures code *robustness* and *maintainability*. This is critical for long-term security, helping to prevent **A04:2021 - Insecure Design** and reducing bugs that could later become security flaws.
+
+---
+
+## Part 3: Infrastructure Security (Deployment)
+
+This section covers the security measures implemented in the containerization and deployment pipeline.
+
+### **Container Security (`Dockerfile`)**
+
+The application is containerized using Docker, following security best practices to minimize the attack surface.
+
+*   **Minimal Base Image:** The container is built `FROM python:3.9-slim`, which is a lightweight, official image. This reduces the number of pre-installed system libraries and potential vulnerabilities.
+*   **Principle of Least Privilege:** The container runs under a non-privileged user (`appuser`). The `USER appuser` directive ensures that even if an attacker gains code execution within the container, they will not have root privileges, severely limiting their ability to harm the host system or other containers.
+*   **No Unnecessary Tools:** The `pip install --no-cache-dir` flag and the minimal base image ensure that no build tools, compilers, or package managers are included in the final image.
+
+### **Deployment & Scanning (`cloudbuild.yaml`)**
+
+The project is continuously deployed using Google Cloud Build, which incorporates security scanning and runs the application in a secure, managed environment.
+
+*   **Container Vulnerability Scanning:** As a step in our `cloudbuild.yaml`, we use Trivy (`aquasec/trivy:latest`) to scan the built container image for known OS and library vulnerabilities. The build is configured to fail (`--exit-code 1`) if any `HIGH` or `CRITICAL` severity vulnerabilities are detected, preventing vulnerable code from being deployed. This directly addresses **A06:2021 - Vulnerable and Outdated Components** and **OWASP LLM10: Insecure Supply Chain**.
+*   **Managed & Hardened Platform:** The application is deployed to Google Cloud Run, a serverless platform that abstracts away the underlying infrastructure. This means Google manages OS patching, infrastructure security, and provides foundational protection against common network-based attacks.
+*   **Access Control:** The Cloud Build configuration includes the `--allow-unauthenticated` flag for public access. For production or sensitive environments, it is strongly recommended to remove this flag and configure IAM (Identity and Access Management) to enforce authenticated, authorized access to the service.
+
+### **Secrets Management**
+
+A robust secrets management strategy is in place to prevent the leakage of sensitive credentials like API keys.
+
+*   **Local Development:**
+    *   Secrets for local development are stored in a `.env` file in the project root.
+    *   This file is explicitly listed in `.gitignore` to ensure it is never committed to version control.
+    *   The application is run locally using `docker run --env-file .env`, which injects the secrets into the container's environment without exposing them in shell history.
+
+*   **Cloud Deployment (CI/CD):**
+    *   **Single Source of Truth:** Google Secret Manager is used as the centralized and secure storage for all production secrets.
+    *   **No Hardcoded Secrets:** Secrets are never hardcoded into source code, the `Dockerfile`, or the `cloudbuild.yaml` configuration.
+    *   **Just-in-Time Injection:** The Cloud Build pipeline is configured to securely inject secrets into the Cloud Run service as environment variables at *runtime*. This is achieved using the `--set-secrets` flag in the `gcloud run deploy` command. The secrets are not present in the Docker image or in any intermediate build artifacts.
+    *   **Least Privilege:** The Cloud Build service account is granted the `Secret Manager Secret Accessor` IAM role, which provides the minimum necessary permissions to access the secrets required for deployment.

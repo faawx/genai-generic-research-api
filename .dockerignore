@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Testing
+.pytest_cache
+tests/
+
+# Documentation
+README.md
+architecture.puml
+ETHICS.md
+LICENSE
+SECURITY.md
+
+# Development
+.github
+requirements-dev.txt
+
+# Build artifacts
+cloudbuild.yaml
+Dockerfile
+.dockerignore

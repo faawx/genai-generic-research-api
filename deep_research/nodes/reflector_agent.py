@@ -44,29 +44,34 @@ def reflector_node(state: GraphState) -> dict:
     if not model:
         return {"error": "Reflector failed: Gemini model not initialized."}
 
-    latest_answer_json = state["synthesized_answers"][-1]
-    latest_answer = json.loads(latest_answer_json)
-    original_plan = state["original_plan"]
     current_queue = list(state["questions_to_answer"])
+    original_plan = state["original_plan"]
+    new_tasks = []
 
-    try:
-        chat = model.start_chat(history=[
-            {'role': 'user', 'parts': [REFLECTOR_SYSTEM_PROMPT]},
-            {'role': 'model', 'parts': ["Understood. I will review the findings and only add critical new questions if necessary."]}
-        ])
-        
-        prompt = f"""
-        **Original Plan:** {json.dumps(original_plan)}
-        **Current Queue:** {json.dumps(current_queue)}
-        **Latest Q&A:** Question: "{latest_answer['question']}" Answer: "{latest_answer['answer']}"
-        """
-        
-        response = chat.send_message(prompt)
-        new_tasks = json.loads(response.text.strip().replace("```json", "").replace("```", "").strip())
-        
-    except Exception as e:
-        logger.error(f"--- Reflector Error: {e} ---")
-        new_tasks = []
+    if state["synthesized_answers"]:
+        latest_answer_json = state["synthesized_answers"][-1]
+        latest_answer = json.loads(latest_answer_json)
+
+        try:
+            chat = model.start_chat(history=[
+                {'role': 'user', 'parts': [REFLECTOR_SYSTEM_PROMPT]},
+                {'role': 'model', 'parts': ["Understood. I will review the findings and only add critical new questions if necessary."]}
+            ])
+            
+            prompt = f"""
+            **Original Plan:** {json.dumps(original_plan)}
+            **Current Queue:** {json.dumps(current_queue)}
+            **Latest Q&A:** Question: "{latest_answer['question']}" Answer: "{latest_answer['answer']}"
+            """
+            
+            response = chat.send_message(prompt)
+            new_tasks = json.loads(response.text.strip().replace("```json", "").replace("```", "").strip())
+            
+        except Exception as e:
+            logger.error(f"--- Reflector Error: {e} ---")
+            new_tasks = []
+    else:
+        logger.info("--- No answers to reflect on yet. ---")
 
     if new_tasks:
         logger.info(f"--- New tasks found: {new_tasks} ---")
