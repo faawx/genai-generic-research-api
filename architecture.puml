@@ -1,7 +1,7 @@
 @startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
-' C2 Model for GenAI Deep Research API
+' C2 Model for GenAI Deep Research API with Guardrails
 
 System_Boundary(c1, "GenAI Deep Research API") {
 
@@ -11,18 +11,51 @@ System_Boundary(c1, "GenAI Deep Research API") {
     Container(tools, "External Tools", "Python", "Integrates with external services like Google Search.")
     Container(database, "State", "Python", "Stores research data, agent states, and configurations.")
 
+    Container(guardrails, "Safety & Security Guardrails", "Python", "Enforces input validation, PII sanitization, and ethical checks.")
+
     Rel(api, langgraph, "Uses", "Internal Calls")
     Rel(langgraph, agents, "Orchestrates", "Internal Calls")
     Rel(agents, tools, "Utilizes", "Internal Calls/API Calls")
     Rel(langgraph, database, "Reads/Writes", "Internal Calls")
     Rel(agents, database, "Reads/Writes", "Internal Calls")
 
+    ' Guardrail Relationships
+    Rel(api, guardrails, "Validates Input Through", "Internal Calls")
+    Rel(guardrails, langgraph, "Passes Validated Input To", "Internal Calls")
+    Rel(agents, guardrails, "Applies Output Guardrails Via", "Internal Calls")
+
 }
 
 System_Ext(user, "User")
 System_Ext(external_llm, "External LLM Provider")
+System_Ext(google_search, "Google Search", "Provides search results.")
 
 Rel(user, api, "Interacts with", "HTTPS")
 Rel(agents, external_llm, "Queries", "API Calls")
+Rel(tools, google_search, "Queries", "API Calls")
+
+
+note right of guardrails
+  **Runtime Guardrails:**
+  - **Input Validation (Planner):**
+    - Deterministic checks (length, forbidden patterns).
+    - Semantic safety check using an LLM.
+  - **PII Sanitization (Analyser):**
+    - Redacts personal information from final output.
+  - **Content Grounding (Analyser):**
+    - Ensures answers are based on search results with citations.
+  - **Disclaimer (Reporter):**
+    - Appends a notice on AI-generated content.
+  - **External Tool Guardrails (Searcher):**
+    - Prompt-based rules to prevent "Google Dorking".
+    - Output filtering to block risky queries.
+end note
+
+note bottom of c1
+  **CI/CD Security:** The project also includes a CI/CD pipeline
+  with automated security scans (gitleaks, bandit, trivy)
+  to prevent vulnerabilities in code and dependencies.
+end note
+
 
 @enduml
