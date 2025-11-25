@@ -11,6 +11,8 @@ Our security philosophy is rooted in a **defense-in-depth** strategy. We assume 
     *   [Risk: Introducing Vulnerabilities in First-Party Code](#risk-introducing-vulnerabilities-in-first-party-code)
     *   [Risk: Using Vulnerable Third-Party Dependencies](#risk-using-vulnerable-third-party-dependencies)
     *   [Risk: Poor Code Quality Leading to Security Flaws](#risk-poor-code-quality-leading-to-security-flaws)
+    *   [Risk: Unverified Code Changes](#risk-unverified-code-changes)
+    *   [Risk: Unauthorized Code Changes](#risk-unauthorized-code-changes)
 *   [**Part 2: Infrastructure Security (Deployment)**](#part-2-infrastructure-security-deployment)
     *   [Risk: Container Image with Large Attack Surface](#risk-container-image-with-large-attack-surface)
     *   [Risk: Privilege Escalation from within the Container](#risk-privilege-escalation-from-within-the-container)
@@ -126,6 +128,45 @@ Our CI pipeline is defined in `.github/workflows/python-ci.yml` and runs on ever
     *   *Consortium for Information & Software Quality (CISQ), "The Cost of Poor Software Quality in the US: A 2022 Report"*
     *   *IEEE, "A Study on the Relationship between Code Complexity and Software Vulnerabilities"*
     *   *TechRadar, "Almost half of all AI-generated code has a security flaw"*
+</details>
+
+### Risk: Unverified Code Changes
+
+*   **The Risk:** An attacker who gains access to a developer's GitHub account or a compromised workstation could commit malicious code. Without cryptographic verification, it is impossible to prove that a commit was actually authored by the claimed developer.
+*   **Control Objective:** To ensure that all code changes are cryptographically signed by a verified developer, providing non-repudiation and integrity.
+*   **Control Implementation (Signed Commits):**
+    *   **Mechanism:** GPG/SSH Signing
+    *   **Enforcement:** GitHub Branch Protection Rules
+    *   **Details:** We require all commits to be signed using GPG or SSH keys. GitHub's "Require signed commits" branch protection rule prevents any unsigned commits from being pushed to the `main` branch. This ensures that every line of code can be cryptographically traced back to a specific, authorized developer.
+    *   **Framework Alignment:** Supports **OWASP A04:2021 - Insecure Design** and **NIST SP 800-218 (SSDF) - Protect Code Integrity**.
+<details>
+<summary>Why This Matters: Identity and Integrity</summary>
+
+*   **Impersonation:** Git, by default, allows anyone to configure their username and email to anything they want. An attacker can easily create a commit that appears to come from a trusted maintainer. Signed commits prevent this by requiring a private key that only the true owner possesses.
+*   **Tampering:** Signing also protects against tampering. If a commit is modified in transit or on the server, the signature verification will fail, alerting the team to potential compromise.
+*   **Compliance:** Many security standards and compliance frameworks (e.g., SOC 2, ISO 27001) require strong controls over code changes, including non-repudiation of authorship.
+</details>
+
+### Risk: Unauthorized Code Changes
+
+*   **The Risk:** A developer (or an attacker with developer credentials) pushes code directly to the production branch without peer review or passing automated tests. This bypasses all the safety checks described above.
+*   **Control Objective:** To enforce a strict workflow where all changes must be reviewed and tested before they are merged into the main codebase.
+*   **Control Implementation (Branch Protection):**
+    *   **Mechanism:** GitHub Branch Protection Rules
+    *   **Target:** `main` branch
+    *   **Details:** The `main` branch is protected with the following rules:
+        *   **Require a pull request before merging:** Direct pushes are blocked.
+        *   **Require approvals:** At least one other developer must review and approve the changes.
+        *   **Require status checks to pass:** All CI jobs (tests, linting, security scans) must pass before merging is allowed.
+        *   **Require signed commits:** As mentioned above.
+        *   **Do not allow bypassing this setting:** Administrators are also subject to these rules.
+    *   **Framework Alignment:** A critical control for **OWASP A01:2021 - Broken Access Control** and **SLSA (Supply-chain Levels for Software Artifacts)**.
+<details>
+<summary>Why This Matters: The Four-Eyes Principle</summary>
+
+*   **Peer Review:** Code review is one of the most effective ways to catch bugs and security flaws. By enforcing pull requests, we ensure that every change is seen by at least two pairs of eyes (the author and the reviewer).
+*   **Automated Gates:** Branch protection ensures that our CI/CD pipeline is not just a suggestion, but a requirement. It guarantees that no code reaches production without passing all our security scans and tests.
+*   **Insider Threat:** These controls also mitigate the risk of insider threats. Even a malicious employee cannot unilaterally push harmful code to production without colluding with another developer or bypassing the CI checks (which is prevented by the rules).
 </details>
 
 ---

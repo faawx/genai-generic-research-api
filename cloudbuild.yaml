@@ -7,26 +7,26 @@ steps:
 - name: 'aquasec/trivy:latest'
   args: ['image', '--exit-code', '1', '--severity', 'HIGH,CRITICAL', 'gcr.io/$PROJECT_ID/genai-generic-research-api:latest']
 
-  # Push the container image to Container Registry
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/genai-generic-research-api:latest']
+#   # Push the container image to Container Registry
+# - name: 'gcr.io/cloud-builders/docker'
+#   args: ['push', 'gcr.io/$PROJECT_ID/genai-generic-research-api:latest']
 
-  # Deploy container image to Cloud Run
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: gcloud
-  args:
-    - 'run'
-    - 'deploy'
-    - 'genai-generic-research-api'
-    - '--image'
-    - 'gcr.io/$PROJECT_ID/genai-generic-research-api:latest'
-    - '--region'
-    - 'australia-southeast1'
-    - '--platform'
-    - 'managed'
-    # The following flag makes the service publicly accessible.
-    # Remove --allow-unauthenticated and configure IAM for a private service.
-    - '--allow-unauthenticated'
-    - '--set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_CSE_ID=GOOGLE_CSE_ID:latest'
-images:
-- 'gcr.io/$PROJECT_ID/genai-generic-research-api:latest'
+#   # Deploy container image to Cloud Run
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: gcloud
+#   args:
+#     - 'run'
+#     - 'deploy'
+#     - 'genai-generic-research-api'
+#     - '--image'
+#     - 'gcr.io/$PROJECT_ID/genai-generic-research-api:latest'
+#     - '--region'
+#     - 'australia-southeast1'
+#     - '--platform'
+#     - 'managed'
+#     # The following flag makes the service publicly accessible.
+#     # Remove --allow-unauthenticated and configure IAM for a private service.
+#     - '--allow-unauthenticated'
+#     - '--set-secrets=GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_CSE_ID=GOOGLE_CSE_ID:latest'
+# images:
+# - 'gcr.io/$PROJECT_ID/genai-generic-research-api:latest'
